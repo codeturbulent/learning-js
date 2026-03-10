@@ -41,7 +41,7 @@ app.post('/', async (req, res) => {
                 method: "POST",
                 headers: {
                     // "Authorization": `Bearer ${secrets.openaiApiKey}`,
-                    "Authorization": `Bearer hi-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`,
+                    "Authorization": `Bearer 174034sk-proj-LNr9WvHjdcTmPGDoL_vabbMhB9bJMfReEpLNJs3TjxYnL1BiPUME2PUGmCmnw7cELEOIErLIsST3BlbkFJrsz6JdbGC29ctM-af1fhJrjeJjAM8FKiQtRb39ZGqUNkApYP2f7U9uDnSkUYzb3zsY7p4ApWsA`,
 
                     "Content-Type": "application/json",
                     "Accept": req.headers.accept || "application/json",
