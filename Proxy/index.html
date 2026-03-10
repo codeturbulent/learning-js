@@ -1,0 +1,20 @@
+<head>
+    <title>prompt test</title>
+</head>
+<script>
+    var data = {
+        "modeltype":"openai",
+        "systemtype": "advanced chat",
+        "userquery":"explain me about the page 100",
+        "userinstruction": "What ever user wants to test he can explain the model here ",
+        "depth": "focused"
+    }
+    fetch("http://127.0.0.1:5050" , {
+        method: "POST",
+           headers: {
+        'Content-Type': 'application/json' // Declare the content type as JSON
+      },
+      body: JSON.stringify(data)
+    })
+
+</script>
