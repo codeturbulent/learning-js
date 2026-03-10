@@ -58,6 +58,26 @@ app.post('/', async (req, res) => {
                     "tool_choice": "required",
                 }),
             })
+             const contentType = openaiRes.headers.get("content-type") || "";
+            // 🔴 STREAMING RESPONSE (SSE)
+            if (contentType.includes("text/event-stream")) {
+                res.status(openaiRes.status);
+                res.setHeader("Content-Type", "text/event-stream");
+                res.setHeader("Cache-Control", "no-cache");
+                res.setHeader("Connection", "keep-alive");
+
+                if (!openaiRes.body) {
+                    throw new Error("Streaming response has no body");
+                }
+
+                const webStream = openaiRes.body;
+                const nodeStream = Readable.fromWeb(webStream);
+                nodeStream.pipe(res);
+                return;
+            }
+            // 🔵 NON-STREAMING RESPONSE (JSON)
+            const json = await openaiRes.json(); // body read exactly once
+            res.status(openaiRes.status).json(json);
         } else if (req.body.modeltype == "claude") {
             console.log("claude is requested")
 
