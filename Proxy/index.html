@@ -2,19 +2,24 @@
     <title>prompt test</title>
 </head>
 <script>
+  async function  ask()  {
+
+    
     var data = {
-        "modeltype":"openai",
-        "systemtype": "advanced chat",
-        "userquery":"explain me about the page 100",
+        "modeltype":"gemini",
+        "systemtype": "advanced voice",
+        "userquery":"hello",
         "userinstruction": "What ever user wants to test he can explain the model here ",
         "depth": "focused"
     }
-    fetch("http://127.0.0.1:5050" , {
+    var resp = await fetch("http://127.0.0.1:5050" , {
         method: "POST",
            headers: {
         'Content-Type': 'application/json' // Declare the content type as JSON
       },
       body: JSON.stringify(data)
     })
-
+    console.log(resp.json())
+}
+ask()
 </script>

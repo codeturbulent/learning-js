@@ -1,21 +1,61 @@
-const express = require("express")
-var cors = require('cors')
+const express = require("express");
+const cors = require('cors');
+const { Readable } = require("stream");
+const TOOLS = require("./tools");
+const SYSTEM_PROMPTS = require("./prompts");
 
-
-var app = express()
-app.use(cors())
-var port = 5050
+const app = express();
+app.use(cors());
+const port = 5050;
 app.use(express.json());
-app.get('/', async (req, res) => {
-    res.send("The service is working")
-})
 
-var model = {
-    "openai": "gpt-4.1-mini",
-    "claude": "gpt-4.1-mini",
-    "gemini": "gpt-4.1-mini",
+app.get('/', async (req, res) => {
+    res.send("The service is working");
+});
+
+const model = {
+    "openai": "gpt-4o-mini",
+    "claude": "claude-3-5-sonnet-20240620",
+    "gemini": "gemini-2.5-flash",
+};
+
+function cleanSchema(schema) {
+    if (!schema || typeof schema !== 'object') return schema;
+    if (Array.isArray(schema)) {
+        return schema.filter(item => item !== null).map(cleanSchema);
+    }
+    const newSchema = {};
+    for (const key in schema) {
+        if (key === 'additionalProperties' || key === 'strict') continue;
+        let value = schema[key];
+        if (key === 'type' && Array.isArray(value)) {
+            value = value.find(t => t !== 'null') || value[0];
+        }
+        if (key === 'enum' && Array.isArray(value)) {
+            value = value.filter(v => v !== null);
+        }
+        if (typeof value === 'object' && value !== null) {
+            newSchema[key] = cleanSchema(value);
+        } else {
+            newSchema[key] = value;
+        }
+    }
+    return newSchema;
 }
 
+function convertToVertexTools(openaiTools) {
+    if (!openaiTools || !Array.isArray(openaiTools) || openaiTools.length === 0) return undefined;
+    return [{
+        functionDeclarations: openaiTools.map(t => {
+            const fn = t.function || t;
+            return {
+                name: fn.name,
+                description: fn.description || "",
+                parameters: cleanSchema(fn.parameters)
+            };
+        })
+    }];
+}
 
 app.post('/', async (req, res) => {
     try {
@@ -33,8 +73,8 @@ app.post('/', async (req, res) => {
             "chat": null,
             "advanced chat": [TOOLS.GETNOTESANDHIGHLIGHTS, TOOLS.GETPAGECONTENT, TOOLS.SEARCHPDFCONTENT],
         }
-        console.log(promptMap[req.body.systemtype])
-        console.log(tools[req.body.systemtype])
+        const systemPrompt = promptMap[req.body.systemtype]
+        const currentTools = tools[req.body.systemtype]
         if (req.body.modeltype == "openai") {
             console.log("openai is requested")
             openairesp = await fetch("https://api.openai.com/v1/responses", {
@@ -48,9 +88,9 @@ app.post('/', async (req, res) => {
                 },
                 body: JSON.stringify({
                     "model": model.openai,
-                    "instructions": promptMap[req.body.systemtype],
+                    "instructions": systemPrompt,
                     "input": req.body.userquery,
-                    "tools": tools[req.body.systemtype],
+                    "tools": currentTools,
                     "parallel_tool_calls": false,
                     "max_tool_calls": 3,
                     "temperature": 0.7,
@@ -58,7 +98,7 @@ app.post('/', async (req, res) => {
                     "tool_choice": "required",
                 }),
             })
-             const contentType = openaiRes.headers.get("content-type") || "";
+            const contentType = openaiRes.headers.get("content-type") || "";
             // 🔴 STREAMING RESPONSE (SSE)
             if (contentType.includes("text/event-stream")) {
                 res.status(openaiRes.status);
@@ -77,13 +117,43 @@ app.post('/', async (req, res) => {
             }
             // 🔵 NON-STREAMING RESPONSE (JSON)
             const json = await openaiRes.json(); // body read exactly once
-            res.status(openaiRes.status).json(json);
+            if (openaiRes.ok) {
+                res.status(200).json(json);
+            } else {
+                res.status(openaiRes.status).json(json);
+            }
         } else if (req.body.modeltype == "claude") {
-            console.log("claude is requested")
+            res.status(401).json({
+                error: "Claude is not yet supported",
+
+            });
 
         } else if (req.body.modeltype == "gemini") {
             console.log("gemini is requested")
 
+            var generationmode = req.body.systemtype == "chat" || req.body.systemtype == "advanced chat" ? "streamGenerateContent" : "generateContent"
+            console.log(generationmode)
+            const url = `https://aiplatform.googleapis.com/v1/publishers/google/models/${model.gemini}:${generationmode}?key=AQ.Ab8RN6JSuGiEiSjZaxZyu5Db1bG0AR9ICAUulOfJpBgwqZkiHw`;
+
+            const geminiBody = {
+                contents: [{ role: "user", parts: [{ text: req.body.userquery }] }],
+                generationConfig: { maxOutputTokens: 4096, temperature: 0.7 }
+            };
+            geminiBody.systemInstruction = { parts: [{ text: systemPrompt }] };
+            const vertexTools = convertToVertexTools(currentTools);
+            geminiBody.tools = vertexTools;
+            const geminiRes = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(geminiBody)
+            });
+
+            const json = await geminiRes.json();
+            if (geminiRes.ok) {
+                res.status(200).json(json);
+            } else {
+                res.status(geminiRes.status).json(json);
+            }
         } else {
             console.log("fallback for the older versions")
             const openaiRes = await fetch(
@@ -132,187 +202,3 @@ app.listen(port, () => {
     console.log(`app started at port ${port}`)
 })
 
-
-
-
-const TOOLS = {
-    DOCUMENTNAVIGATION: (type) => {
-        return {
-            "type": "function",
-            "name": "document_navigation_response",
-            "description":
-                "Respond to user's document navigation or question command.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "intent": {
-                        "type": "string", "enum": type == "advanced voice" ? [
-                            "basic_navigation",
-                            "topic_navigation",
-                            "basic_response",
-                            "topic_summary",
-                            "topic_exploration",
-                            "annotations_exploration",
-                            "content_narration",
-                            "intent_unclear",
-                        ] : [
-                            "basic_navigation",
-                            "basic_response",
-                            "content_narration",
-                            "intent_unclear",
-                        ]
-                    },
-                    "direction": {
-                        "type": ["string", "null"],
-                        "enum": ["forward", "backward", null],
-                    },
-                    "page_count": {
-                        "type": ["integer", "null"],
-                    },
-                    "target_page": {
-                        "type": ["integer", "null"],
-                    },
-                    "section": {
-                        "type": ["string", "null"],
-                    },
-                    "query_type": {
-                        "type": ["string", "null"],
-                        "enum": [
-                            "factual",
-                            "definition",
-                            "list",
-                            "explanation",
-                            "summary",
-                            "interpretation",
-                            "detail",
-                            "search_results",
-                            "comparison",
-                            "synthesis",
-                            "analysis",
-                            "highlights",
-                            "notes",
-                            "bookmarks",
-                            "all_annotations",
-                            null,
-                        ],
-                    },
-                    "read_aloud": {
-                        "type": ["string", "null"],
-                        "enum": ["full_page", null],
-                    },
-                    "speech": { "type": "string" },
-                    "confidence": { "type": "number" },
-                },
-                "required": [
-                    "intent",
-                    "direction",
-                    "page_count",
-                    "target_page",
-                    "section",
-                    "query_type",
-                    "read_aloud",
-                    "speech",
-                    "confidence",
-                ],
-                "additionalProperties": false,
-            },
-            "strict": true,
-        }
-    },
-    GETNOTESANDHIGHLIGHTS: {
-        "type": "function",
-        "name": "getUserNotesAndHighlights",
-        "description":
-            "Retrieve all user-created notes and highlighted text segments for the current PDF document. Optionally filter them by keyword or by page number. Useful when the user refers to something they've highlighted, annotated, or written notes about.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description":
-                        "Keyword or phrase to filter notes and highlights related to this text",
-                },
-                "pageNumber": {
-                    "type": ["integer", "null"],
-                    "description":
-                        "Page number to filter notes and highlights by a specific page.",
-                },
-            },
-            "required": ["query", "pageNumber"],
-            "additionalProperties": false,
-        },
-        "strict": true,
-    },
-    GETPAGECONTENT: {
-        "type": "function",
-        "name": "getPageContent",
-        "description":
-            "Fetch the full text content of specific pages in the current PDF.",
-        "strict": true,
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "pageNumbers": {
-                    "type": "array",
-                    "description":
-                        "Array of page numbers from the PDF whose text content should be retrieved. Required.",
-                    "items": { "type": "integer" },
-                },
-            },
-            "required": ["pageNumbers"],
-            "additionalProperties": false,
-        },
-    },
-    GETTOPICNAVIGATION: {
-        "type": "function",
-        "name": "getTopicNavigationInfo",
-        "description":
-            "Find where a given topic, word, or phrase is discussed in the PDF. Returns the most relevant page number and chapter (if available).",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description":
-                        "Topic, keyword, or phrase to locate within the PDF. Required.",
-                },
-            },
-            "required": ["query"],
-            "additionalProperties": false,
-        },
-        "strict": true,
-    },
-    SEARCHPDFCONTENT: {
-        "type": "function",
-        "name": "searchPdfContent",
-        "description":
-            "Perform a full-text search in the PDF and return matching snippets with page numbers.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description":
-                        "Text to search for inside the PDF pages. Required.",
-                },
-                "maxResults": {
-                    "type": ["integer", "null"],
-                    "description": "Maximum number of search results to return",
-                },
-            },
-            "required": ["query", "maxResults"],
-            "additionalProperties": false,
-        },
-        "strict": true,
-    }
-
-
-}
-
-const SYSTEM_PROMPTS = {
-    VOICE: "You are a concise voice assistant. Use short sentences for TTS...",
-    ADVANCED_VOICE: "You are an advanced voice assistant with tool access. You can...",
-    CHAT: (userinstruction, depth) => `You are ${userinstruction} PDF assistant. Help the user ${depth} navigate...`,
-    ADVANCED_CHAT: (userinstruction, depth) => `advanced chat ${userinstruction} PDF assistant. Help the user ${depth} navigate...`,
-    CLARIFICATION: "The user's request was ambiguous. Ask for specific details about..."
-};
