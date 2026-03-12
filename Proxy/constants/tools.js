@@ -9,7 +9,8 @@ const TOOLS = {
                 "type": "object",
                 "properties": {
                     "intent": {
-                        "type": "string", "enum": type == "advanced voice" ? [
+                        "type": "string",
+                        "enum": type == "advanced voice" ? [
                             "basic_navigation",
                             "topic_navigation",
                             "basic_response",
@@ -26,45 +27,36 @@ const TOOLS = {
                         ]
                     },
                     "direction": {
-                        "type": ["string", "null"],
-                        "enum": ["forward", "backward", null],
+                        "type": "string",
+                        "description": "Direction of movement if navigating.",
+                        "enum": ["forward", "backward", "null"]
                     },
                     "page_count": {
-                        "type": ["integer", "null"],
+                        "type": "integer",
+                        "description": "Number of pages to move."
                     },
                     "target_page": {
-                        "type": ["integer", "null"],
+                        "type": "integer",
+                        "description": "Specific page number to jump to."
                     },
                     "section": {
-                        "type": ["string", "null"],
+                        "type": "string",
+                        "description": "Specific document section title."
                     },
-                    "query_type": {
-                        "type": ["string", "null"],
-                        "enum": [
-                            "factual",
-                            "definition",
-                            "list",
-                            "explanation",
-                            "summary",
-                            "interpretation",
-                            "detail",
-                            "search_results",
-                            "comparison",
-                            "synthesis",
-                            "analysis",
-                            "highlights",
-                            "notes",
-                            "bookmarks",
-                            "all_annotations",
-                            null,
-                        ],
-                    },
+
                     "read_aloud": {
-                        "type": ["string", "null"],
-                        "enum": ["full_page", null],
+                        "type": "string",
+                        "description": "Narration mode if applicable.",
+                        "enum": ["full_page"]
                     },
-                    "speech": { "type": "string" },
-                    "confidence": { "type": "number" },
+                    "speech": {
+                        "type": "string",
+                        "description": "The verbal response text for the user."
+                    },
+                    "confidence": {
+                        "type": "number",
+                        "description": "Confidence score of the intent classification."
+                    }
                 },
                 "required": [
                     "intent",
@@ -72,7 +64,6 @@ const TOOLS = {
                     "page_count",
                     "target_page",
                     "section",
-                    "query_type",
                     "read_aloud",
                     "speech",
                     "confidence",
@@ -96,12 +87,12 @@ const TOOLS = {
                         "Keyword or phrase to filter notes and highlights related to this text",
                 },
                 "pageNumber": {
-                    "type": ["integer", "null"],
+                    "type": "integer",
                     "description":
                         "Page number to filter notes and highlights by a specific page.",
                 },
             },
-            "required": ["query", "pageNumber"],
+            "required": ["query","pageNumber"],
             "additionalProperties": false,
         },
         "strict": true,
@@ -159,11 +150,11 @@ const TOOLS = {
                         "Text to search for inside the PDF pages. Required.",
                 },
                 "maxResults": {
-                    "type": ["integer", "null"],
+                    "type": "integer",
                     "description": "Maximum number of search results to return",
                 },
             },
-            "required": ["query", "maxResults"],
+            "required": ["query","maxResults"],
             "additionalProperties": false,
         },
         "strict": true,

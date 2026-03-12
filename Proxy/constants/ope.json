@@ -1,0 +1,234 @@
+{
+    "id": "resp_052e17b9f80a91af0069b27de3bcd08193afc8327ba21bf0dc",
+    "object": "response",
+    "created_at": 1773305315,
+    "status": "completed",
+    "background": false,
+    "billing": {
+        "payer": "developer"
+    },
+    "completed_at": 1773305316,
+    "error": null,
+    "frequency_penalty": 0,
+    "incomplete_details": null,
+    "instructions": "You are an advanced voice assistant with tool access. You can...",
+    "max_output_tokens": 2048,
+    "max_tool_calls": 3,
+    "model": "gpt-4o-mini-2024-07-18",
+    "output": [
+        {
+            "id": "fc_052e17b9f80a91af0069b27de440d08193b3296f96637516a5",
+            "type": "function_call",
+            "status": "completed",
+            "arguments": {
+                "intent": "basic_navigation",
+                "direction": "forward",
+                "page_count": 1,
+                "target_page": 2,
+                "section": "",
+                "read_aloud": "full_page",
+                "speech": "",
+                "confidence": 0
+            },
+            "call_id": "call_f7BnZafvOPKd9bqnyIdfW9MP",
+            "name": "document_navigation_response"
+        }
+    ],
+    "parallel_tool_calls": false,
+    "presence_penalty": 0,
+    "previous_response_id": null,
+    "prompt_cache_key": null,
+    "prompt_cache_retention": null,
+    "reasoning": {
+        "effort": null,
+        "summary": null
+    },
+    "safety_identifier": null,
+    "service_tier": "default",
+    "store": true,
+    "temperature": 0.7,
+    "text": {
+        "format": {
+            "type": "text"
+        },
+        "verbosity": "medium"
+    },
+    "tool_choice": "auto",
+    "tools": [
+        {
+            "type": "function",
+            "description": "Respond to user's document navigation or question command.",
+            "name": "document_navigation_response",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "intent": {
+                        "type": "string",
+                        "enum": [
+                            "basic_navigation",
+                            "topic_navigation",
+                            "basic_response",
+                            "topic_summary",
+                            "topic_exploration",
+                            "annotations_exploration",
+                            "content_narration",
+                            "intent_unclear"
+                        ]
+                    },
+                    "direction": {
+                        "type": "string",
+                        "description": "Direction of movement if navigating.",
+                        "enum": [
+                            "forward",
+                            "backward"
+                        ]
+                    },
+                    "page_count": {
+                        "type": "integer",
+                        "description": "Number of pages to move."
+                    },
+                    "target_page": {
+                        "type": "integer",
+                        "description": "Specific page number to jump to."
+                    },
+                    "section": {
+                        "type": "string",
+                        "description": "Specific document section title."
+                    },
+                    "read_aloud": {
+                        "type": "string",
+                        "description": "Narration mode if applicable.",
+                        "enum": [
+                            "full_page"
+                        ]
+                    },
+                    "speech": {
+                        "type": "string",
+                        "description": "The verbal response text for the user."
+                    },
+                    "confidence": {
+                        "type": "number",
+                        "description": "Confidence score of the intent classification."
+                    }
+                },
+                "required": [
+                    "intent",
+                    "direction",
+                    "page_count",
+                    "target_page",
+                    "section",
+                    "read_aloud",
+                    "speech",
+                    "confidence"
+                ],
+                "additionalProperties": false
+            },
+            "strict": true
+        },
+        {
+            "type": "function",
+            "description": "Retrieve all user-created notes and highlighted text segments for the current PDF document. Optionally filter them by keyword or by page number. Useful when the user refers to something they've highlighted, annotated, or written notes about.",
+            "name": "getUserNotesAndHighlights",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Keyword or phrase to filter notes and highlights related to this text"
+                    },
+                    "pageNumber": {
+                        "type": "integer",
+                        "description": "Page number to filter notes and highlights by a specific page."
+                    }
+                },
+                "required": [
+                    "query",
+                    "pageNumber"
+                ],
+                "additionalProperties": false
+            },
+            "strict": true
+        },
+        {
+            "type": "function",
+            "description": "Fetch the full text content of specific pages in the current PDF.",
+            "name": "getPageContent",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pageNumbers": {
+                        "type": "array",
+                        "description": "Array of page numbers from the PDF whose text content should be retrieved. Required.",
+                        "items": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "required": [
+                    "pageNumbers"
+                ],
+                "additionalProperties": false
+            },
+            "strict": true
+        },
+        {
+            "type": "function",
+            "description": "Find where a given topic, word, or phrase is discussed in the PDF. Returns the most relevant page number and chapter (if available).",
+            "name": "getTopicNavigationInfo",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Topic, keyword, or phrase to locate within the PDF. Required."
+                    }
+                },
+                "required": [
+                    "query"
+                ],
+                "additionalProperties": false
+            },
+            "strict": true
+        },
+        {
+            "type": "function",
+            "description": "Perform a full-text search in the PDF and return matching snippets with page numbers.",
+            "name": "searchPdfContent",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Text to search for inside the PDF pages. Required."
+                    },
+                    "maxResults": {
+                        "type": "integer",
+                        "description": "Maximum number of search results to return"
+                    }
+                },
+                "required": [
+                    "query",
+                    "maxResults"
+                ],
+                "additionalProperties": false
+            },
+            "strict": true
+        }
+    ],
+    "top_logprobs": 0,
+    "top_p": 1,
+    "truncation": "disabled",
+    "usage": {
+        "input_tokens": 449,
+        "input_tokens_details": {
+            "cached_tokens": 0
+        },
+        "output_tokens": 46,
+        "output_tokens_details": {
+            "reasoning_tokens": 0
+        },
+        "total_tokens": 495
+    },
+    "user": null,
+    "metadata": {}
+}

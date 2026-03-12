@@ -2,24 +2,42 @@
     <title>prompt test</title>
 </head>
 <script>
-  async function  ask()  {
+ async function ask() {
+    // var data = {
+    //     "modeltype": "gemini",
+    //     "systemtype": "advanced voice",
+    //     "input": "go to page 10",
+    //     "userinstruction": "What ever user wants to test he can explain the model here ",
+    //     "depth": "focused"
+    // };
 
-    
-    var data = {
-        "modeltype":"gemini",
-        "systemtype": "advanced voice",
-        "userquery":"hello",
+    // var resp = await fetch("http://127.0.0.1:5050", {
+    //     method: "POST",
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(data)
+    // });
+
+    // // Added await here
+    // var responcedata = await resp.json(); 
+    // console.log("Gemini Response:", responcedata);
+
+    var data1 = {
+        "modeltype": "openai",
+     "systemtype": "advanced chat",
+        "input": "how many humans are there",
         "userinstruction": "What ever user wants to test he can explain the model here ",
         "depth": "focused"
-    }
-    var resp = await fetch("http://127.0.0.1:5050" , {
+    };
+
+    var resp1 = await fetch("http://127.0.0.1:5050", {
         method: "POST",
-           headers: {
-        'Content-Type': 'application/json' // Declare the content type as JSON
-      },
-      body: JSON.stringify(data)
-    })
-    console.log(resp.json())
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data1)
+    });
+
+    // Added await here
+    var responcedata1 = await resp1.json();
+    console.log("OpenAI Response:", responcedata1);
 }
 ask()
 </script>

@@ -1,0 +1,38 @@
+{
+    "toolreturn": {
+        "role": "model",
+        "parts": [
+            {
+                "functionCall": {
+                    "name": "document_navigation_response",
+                    "args": {
+                        "intent": "basic_navigation",
+                        "target_page": 0,
+                        "page_count": 1,
+                        "read_aloud": "full_page",
+                        "direction": "forward",
+                        "confidence": 1,
+                        "section": "",
+                        "speech": "Okay, I've moved forward one page."
+                    }
+                },
+                "thoughtSignature": "CsQCAY89a196Lal2hBUY0tF9qBUAhQE/iLJ8Zco7uZUYYoP6xrUrlJTXpNegljGqZ7U6OL39Idla2UZiwh1/9Of6JxMka39Bz3Tm/Fso4EzhqD6gJqEqOmZJqzvneyZLu1og7HPrykuBXrIndW8bS6EpHh2hgE+Od/iurX5IwXtYQWjyQUoH4KCp2RXvUeQvvvlvtFCBKc/ctl4KyL2SP58KyEXXBtwOFz3znBH7Iaw31qCQEsip3UAvIc64PNpZuOrHk7pGpll1GUZ+6WnnuohQKwAoVKFhePLDFnec+4AZMK3GoViK/pi+w673AETylErcrzjTilv072Vz8dl3pC0Yc/M9MGfXUgV0SJ0HAqryyhVc5bI8c2bk4HTuffUK7fOWdsRT76JIKMtnZhkb7y2Lpq4KIlt/7JQIQjMyjtncPyzhewfy"
+            }
+        ]
+    },
+    "tools": [
+        {
+            "name": "document_navigation_response",
+            "args": {
+                "intent": "basic_navigation",
+                "target_page": 0,
+                "page_count": 1,
+                "read_aloud": "full_page",
+                "direction": "forward",
+                "confidence": 1,
+                "section": "",
+                "speech": "Okay, I've moved forward one page."
+            }
+        }
+    ]
+}
