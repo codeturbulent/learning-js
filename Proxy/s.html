@@ -11,7 +11,6 @@
         .header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; }
         .tag { background: #333; padding: 2px 6px; border-radius: 3px; font-size: 0.8em; }
         .content { white-space: pre-wrap; word-break: break-all; margin-top: 10px; color: #9cdcfe; }
-        .tool-call { background: #2d2d2d; border: 1px solid #444; padding: 8px; margin-top: 5px; color: #ce9178; }
         button { background: #0e639c; color: white; border: none; padding: 10px 20px; cursor: pointer; margin-bottom: 20px; }
         button:hover { background: #1177bb; }
     </style>
@@ -52,17 +51,10 @@
             const tagSpan = container.querySelector('.tag');
 
             const isStreaming = systemtype === "chat" || systemtype === "advanced chat";
-            
-            // Use inputs that trigger tool calls for advanced modes
-            let input = "what is on page 10";
-            if (systemtype.includes("voice") || systemtype === "advanced chat") {
-                input = "Go to page 5";
-            }
-
             const payload = {
                 modeltype,
                 systemtype,
-                input,
+                input: systemtype.includes("voice") ? "Go to page 5" : "what is on page 10",
                 userinstruction: "a helpful assistant",
                 depth: "deep"
             };
@@ -90,23 +82,8 @@
                         for (const line of lines) {
                             if (line.startsWith('data: ')) {
                                 try {
-                                    const jsonStr = line.replace('data: ', '');
-                                    if (jsonStr === '[DONE]') break;
-                                    
-                                    const data = JSON.parse(jsonStr);
-                                    
-                                    if (data.text) {
-                                        contentDiv.innerHTML += data.text;
-                                    }
-                                    
-                                    if (data.tool_calls) {
-                                        data.tool_calls.forEach(tc => {
-                                            const toolEl = document.createElement('div');
-                                            toolEl.className = 'tool-call';
-                                            toolEl.innerText = `🔧 TOOL CALL: ${tc.name}\n${JSON.stringify(tc.args, null, 2)}`;
-                                            contentDiv.appendChild(toolEl);
-                                        });
-                                    }
+                                    const data = JSON.parse(line.replace('data: ', ''));
+                                    if (data.text) contentDiv.innerHTML += data.text;
                                 } catch (e) {
                                     if (line.includes('[DONE]')) break;
                                 }
