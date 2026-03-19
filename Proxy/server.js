@@ -24,7 +24,7 @@ const validateRequest = (req, res, next) => {
     }
     next();
 };
-
+const modeltype = "gemini"
 app.use(validateRequest);
 
 app.get('/', async (req, res) => {
@@ -35,14 +35,14 @@ app.post('/', async (req, res) => {
     try {
 
 
-        if (req.body.modeltype === "openai") {
+        if (modeltype === "openai") {
             return await callopenai(req, res);
-        } else if (req.body.modeltype === "claude") {
+        } else if (modeltype === "claude") {
             return res.status(401).json({
                 error: "Feature Not Available",
                 message: "Claude is not yet supported",
             });
-        } else if (req.body.modeltype === "gemini") {
+        } else if (modeltype === "gemini") {
             return await callgemini(req, res);
         } else {
             console.log("fallback for the older versions");
@@ -51,7 +51,7 @@ app.post('/', async (req, res) => {
                 {
                     method: "POST",
                     headers: {
-                       "Authorization": `Bearer openaiapi`,
+                       "Authorization": `Bearer ${APIKEYS.OPENAI}`,
                         "Content-Type": "application/json",
                         "Accept": req.headers.accept || "application/json",
                     },

@@ -1,6 +1,7 @@
 const TOOLS = require("./../constants/tools");
 const SYSTEM_PROMPTS = require("./../constants/prompts");
 const MODELS = require("./../constants/models")
+const APIKEYS = require('./../constants/models')
 const { Readable } = require("stream");
 
 
@@ -24,7 +25,7 @@ async function callgemini(req, res) {
     console.log("gemini is requested")
     var generationmode = req.body.systemtype == "chat" || req.body.systemtype == "advanced chat" ? "streamGenerateContent" : "generateContent"
     
-    const url = `https://aiplatform.googleapis.com/v1/publishers/google/models/${MODELS.GEMINI}:${generationmode}?key=gemapikey`;
+    const url = `https://aiplatform.googleapis.com/v1/publishers/google/models/${MODELS.GEMINI}:${generationmode}?key=${APIKEYS.GEMINI}`;
     const body = {
         contents: [{ role: "user", parts: [{ text: userInput }] }],
         generationConfig: { maxOutputTokens: 4096, temperature: 0.7 }

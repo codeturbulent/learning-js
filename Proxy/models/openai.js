@@ -3,6 +3,7 @@ const { Readable } = require("stream");
 const TOOLS = require("./../constants/tools");
 const SYSTEM_PROMPTS = require("./../constants/prompts");
 const MODELS = require("./../constants/models");
+const APIKEYS = require("./../constants/models");
 
 async function callopenai(req, res) {
     const promptMap = {
@@ -24,12 +25,11 @@ async function callopenai(req, res) {
     var generationmode = req.body.systemtype == "chat" || req.body.systemtype == "advanced chat"
 
     console.log("openai is requested")
-    const apiKey = "openai api";
-
+  
     const openaiRes = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",
         headers: {
-            "Authorization": `Bearer ${apiKey}`,
+            "Authorization": `Bearer ${APIKEYS.OPENAI}`,
             "Content-Type": "application/json",
             "Accept": req.headers.accept || "application/json",
         },
