@@ -17,7 +17,7 @@ The request body must be a JSON object containing the following fields:
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `modeltype` | `string` | The LLM provider to use. Supported: `"openai"`, `"gemini"`. (`"claude"` is currently a stub). |
+| `model` | `string` | The LLM provider to use. Supported: `"openai"`, `"gemini"`. (`"claude"` is currently a stub). |
 | `input` | `string` | The user's message or query. |
 
 ### Optional Contextual Fields
@@ -88,7 +88,7 @@ Used for `chat` and `advanced chat`. The `Content-Type` will be `text/event-stre
 curl -X POST http://localhost:5050/ \
 -H "Content-Type: application/json" \
 -d '{
-  "modeltype": "openai",
+  "model": "openai",
   "systemtype": "advanced voice",
   "input": "Go to page 5 and read it."
 }'
@@ -99,7 +99,7 @@ curl -X POST http://localhost:5050/ \
 curl -X POST http://localhost:5050/ \
 -H "Content-Type: application/json" \
 -d '{
-  "modeltype": "gemini",
+  "model": "gemini",
   "systemtype": "advanced chat",
   "userinstruction": "expert researcher",
   "depth": "academic",
@@ -117,7 +117,7 @@ import requests
 
 url = "http://localhost:5050/"
 payload = {
-    "modeltype": "openai",
+    "model": "openai",
     "systemtype": "voice",
     "input": "Go to the next page and tell me what you see."
 }
@@ -139,7 +139,7 @@ import json
 
 url = "http://localhost:5050/"
 payload = {
-    "modeltype": "gemini",
+    "model": "gemini",
     "systemtype": "advanced chat",
     "userinstruction": "friendly tutor",
     "depth": "beginner",
@@ -180,7 +180,7 @@ for line in response.iter_lines():
    }
    ```
 3. **Hardcoded Keys:** Current implementation uses hardcoded API keys in `server.js`, `models/gemini.js`, and `models/openai.js`. These should be moved to environment variables in production.
-4. **Fallback:** If `modeltype` is not specified or recognized, the server defaults to a legacy OpenAI endpoint.
+4. **Fallback:** If `model` is not specified or recognized, the server defaults to a legacy OpenAI endpoint.
 
 ---
 

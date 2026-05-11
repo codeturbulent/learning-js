@@ -1,77 +1,65 @@
 const TOOLS = {
-    DOCUMENTNAVIGATION: (type) => {
-        return {
-            "type": "function",
-            "name": "document_navigation_response",
-            "description":
-                "Respond to user's document navigation or question command.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "intent": {
-                        "type": "string",
-                        "enum": type == "advanced voice" ? [
-                            "basic_navigation",
-                            "topic_navigation",
-                            "basic_response",
-                            "topic_summary",
-                            "topic_exploration",
-                            "annotations_exploration",
-                            "content_narration",
-                            "intent_unclear",
-                        ] : [
-                            "basic_navigation",
-                            "basic_response",
-                            "content_narration",
-                            "intent_unclear",
-                        ]
-                    },
-                    "direction": {
-                        "type": "string",
-                        "description": "Direction of movement if navigating.",
-                        "enum": ["forward", "backward", "null"]
-                    },
-                    "page_count": {
-                        "type": "integer",
-                        "description": "Number of pages to move."
-                    },
-                    "target_page": {
-                        "type": "integer",
-                        "description": "Specific page number to jump to."
-                    },
-                    "section": {
-                        "type": "string",
-                        "description": "Specific document section title."
-                    },
-
-                    "read_aloud": {
-                        "type": "string",
-                        "description": "Narration mode if applicable.",
-                        "enum": ["full_page"]
-                    },
-                    "speech": {
-                        "type": "string",
-                        "description": "The verbal response text for the user."
-                    },
-                    "confidence": {
-                        "type": "number",
-                        "description": "Confidence score of the intent classification."
-                    }
-                },
-                "required": [
-                    "intent",
-                    "direction",
-                    "page_count",
-                    "target_page",
-                    "section",
-                    "read_aloud",
-                    "speech",
-                    "confidence",
-                ],
-                "additionalProperties": false,
+    FINDWITHJIVA: {
+        "type": "function",
+        "name": "findwithjiva",
+        "description": "Searches Google for PDF files using advanced search operators. Always include 'filetype:pdf' in the query. Returns direct links to PDF documents.this tool never return anything never expect any output form this tool",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "q": {
+                    "type": "string",
+                    "description": "Google search query with 'filetype:pdf' and other operators (site:, intitle:, inurl:, etc.). Example: 'filetype:pdf site:.edu machine learning'"
+                }
             },
-            "strict": true,
+            "required": ["q"],
+            "additionalProperties": false
         }
+    },
+    NAVIGATION: {
+        "type": "function",
+        "name": "navigateToPage",
+        "description":
+            "Navigates the user to a specified page number or the destination within the document. this tool never return anything never expect any output form this tool",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pageNumber": {
+                    "type": "integer",
+                    "description": "The specific page number to navigate to.",
+                },
+            },
+            "required": ["pageNumber"],
+            "additionalProperties": false,
+        },
+    },
+    RESPONSE: {
+        "type": "function",
+        "name": "synthesizeSpeech",
+        "description":
+            "Uses the app's Text-to-Speech (TTS) feature to speak custom words to the user or read specific pages from a PDF. this tool never return anything never expect any output from this tool",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "speech": {
+                    "type": "string",
+                    "description":
+                        "The exact text string that will be read aloud to the user.",
+                },
+                "allpages": {
+                    "type": "boolean",
+                    "description":
+                        "If true, the app will continue reading subsequent pages automatically until the end of the document or until interrupted.",
+                },
+                "readpages": {
+                    "type": "array",
+                    "description":
+                        "An array of page numbers from the PDF whose text content should be read aloud.",
+                    "items": { "type": "integer" },
+                },
+            },
+            "required": ["speech"],
+            "additionalProperties": false,
+        },
     },
     GETNOTESANDHIGHLIGHTS: {
         "type": "function",
@@ -92,7 +80,7 @@ const TOOLS = {
                         "Page number to filter notes and highlights by a specific page.",
                 },
             },
-            "required": ["query","pageNumber"],
+            "required": ["query", "pageNumber"],
             "additionalProperties": false,
         },
         "strict": true,
@@ -117,25 +105,6 @@ const TOOLS = {
             "additionalProperties": false,
         },
     },
-    GETTOPICNAVIGATION: {
-        "type": "function",
-        "name": "getTopicNavigationInfo",
-        "description":
-            "Find where a given topic, word, or phrase is discussed in the PDF. Returns the most relevant page number and chapter (if available).",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description":
-                        "Topic, keyword, or phrase to locate within the PDF. Required.",
-                },
-            },
-            "required": ["query"],
-            "additionalProperties": false,
-        },
-        "strict": true,
-    },
     SEARCHPDFCONTENT: {
         "type": "function",
         "name": "searchPdfContent",
@@ -149,15 +118,40 @@ const TOOLS = {
                     "description":
                         "Text to search for inside the PDF pages. Required.",
                 },
-                "maxResults": {
-                    "type": "integer",
-                    "description": "Maximum number of search results to return",
+      
+                "range": {
+                    "type": "array",
+                    "description":
+                        "Optional array of page numbers to limit the search scope. Can be a list of discrete page numbers [1, 3, 5] or a range [start, end] like [1, 10] for pages 1 to 10 inclusive. If not provided, the entire PDF will be searched.",
+                    "items": { "type": "integer" },
                 },
             },
-            "required": ["query","maxResults"],
+            "required": ["query", "range"],
             "additionalProperties": false,
         },
         "strict": true,
+    },
+    CLARIFICATION: {
+        "name": "clarification",
+        "description": "Provides a concise clarification of a selected text passage within a reading app. Handles word count limits and ambiguity. this tool never return anything never expect any output form this tool",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "clarification": {
+                    "type": "string",
+                    "description": "The clear, context-aware simplification of the selected text (max 100 words)."
+                },
+                "error": {
+                    "type": "string",
+                    "description": "Error message if the selection is unclear or exceeds the word limit."
+                },
+                "errorCode": {
+                    "type": "string",
+                    "enum": ["USER_SELECTION_NOT_CLEAR", "SELECTION_TOO_LONG"],
+                    "description": "The specific error code for the failure state."
+                }
+            }
+        }
     }
 };
 
