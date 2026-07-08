@@ -4,7 +4,7 @@ const { SpanStatusCode } = require("@opentelemetry/api");
 
 const TOOLS = require("./../constants/tools");
 const SYSTEM_PROMPTS = require("./../constants/prompts");
-const { MODELS, APIKEYS } = require("./../constants/models")
+const { MODELS, APIKEYS } = require("../constants/constants")
 
 
 async function callopenai(req, res) {

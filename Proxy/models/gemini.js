@@ -1,17 +1,30 @@
 const TOOLS = require("./../constants/tools");
 const SYSTEM_PROMPTS = require("./../constants/prompts");
-const { MODELS, APIKEYS } = require("./../constants/models")
+const { MODELS, APIKEYS } = require("../constants/constants.js")
 const otel = require("@opentelemetry/api");
 const { SpanStatusCode } = require("@opentelemetry/api");
 const { clssify } = require("../function/ml.js")
 const { Readable } = require("stream");
+const {texttovoice} = require("../function/tts.js")
+
+var userq;
 async function convertToGemini(openAIMessages, userquery = "") {
     const contents = [];
     if (userquery != "") {
         const cl = await clssify(userquery);
+        const textPayload = {
+            "userQuery": userquery,
+            "intent": cl.intent,
+            "confidence": cl.conf
+        };
+
         userq = {
             "role": "user",
-            "parts": [{ "text": `User Query : "${userquery}" \n ,  intent : ${cl.intent} \n ,  confidence : ${cl.conf}` }]
+            "parts": [
+                {
+                    "text": JSON.stringify(textPayload)
+                }
+            ]
         };
         contents.push(userq);
     }
@@ -112,17 +125,17 @@ async function callgemini(req, res) {
     }
 
     const tools = {
-        "voice": [TOOLS.NAVIGATION, TOOLS.RESPONSE],
-        "advanced voice": [TOOLS.NAVIGATION, TOOLS.RESPONSE, TOOLS.GETNOTESANDHIGHLIGHTS, TOOLS.GETPAGECONTENT, TOOLS.SEARCHPDFCONTENT],
-        "chat": null,
-        "advanced chat": [TOOLS.GETNOTESANDHIGHLIGHTS, TOOLS.GETPAGECONTENT, TOOLS.SEARCHPDFCONTENT],
+        "voice": [TOOLS.NAVIGATION, TOOLS.RESPONSE, TOOLS.READPDFPAGES],
+        "advanced voice": [TOOLS.NAVIGATION, TOOLS.RESPONSE, TOOLS.READPDFPAGES, TOOLS.GETNOTESANDHIGHLIGHTS, TOOLS.GETPAGECONTENT, TOOLS.SEARCHPDFCONTENT],
+        "chat": [TOOLS.NAVIGATION],
+        "advanced chat": [TOOLS.GETNOTESANDHIGHLIGHTS, TOOLS.GETPAGECONTENT, TOOLS.SEARCHPDFCONTENT, TOOLS.NAVIGATION],
         "clarification": [TOOLS.CLARIFICATION],
         "findwithjiva": [TOOLS.FINDWITHJIVA]
     }
     const systemPrompt = promptMap[req.body.systemtype];
     const currentTools = tools[req.body.systemtype] ?? [];
     const userInput = Array.isArray(req.body.input) ? req.body.input : [{ role: 'user', content: req.body.input }];
-    var userq 
+
     const message = await convertToGemini(userInput, req.body.userquery);
 
     var generationmode = "generateContent"
@@ -130,7 +143,7 @@ async function callgemini(req, res) {
     const url = `https://asia-south1-aiplatform.googleapis.com/v1/publishers/google/models/${MODELS.GEMINI}:${generationmode}?key=${APIKEYS.GEMINI}`;
     const body = {
         contents: message,
-        generationConfig: { temperature: req.body.depth == "Focused" ? 0.25 : req.body.depth == "Explorative" ? 0.6 : 0.7 },
+        generationConfig: { temperature: req.body.depth == "Focused" ? 0.7 : req.body.depth == "Explorative" ? 1.2 : 0.9, max_output_tokens: 5000 },
         toolConfig: {
             functionCallingConfig: {
                 mode: req.body.systemtype === "findwithjiva" ? "ANY" : "AUTO"
@@ -191,56 +204,74 @@ async function callgemini(req, res) {
 
         // Trace original userInput
         userInput.forEach((msg) => {
-            if (msg.role === "system") return; // skip ignored system messages
-            let role = msg.type === "toolresponse" ? "tool" : (msg.role === "model" ? "assistant" : (msg.role || "user"));
-            let content = "";
-            let hasContent = false;
-            let hasToolCalls = false;
+            if (msg.role === "system") return;
 
+            // Standardize role
+            let role = msg.type === "toolresponse" ? "tool" : (msg.role === "model" ? "assistant" : (msg.role || "user"));
+
+            let textContent = "";
+            let hasValidContent = false;
+            let hasToolCalls = !!(msg.tool_calls && msg.tool_calls.length > 0);
+
+            const baseKey = `llm.input_messages.${msgIdx}.message`;
+
+            // 1. Handle Tool Responses
             if (msg.type === "toolresponse") {
-                content = typeof msg.output === "string" ? msg.output : JSON.stringify(msg.output);
-                hasContent = content !== undefined && content !== null;
-                span.setAttribute(`llm.input_messages.${msgIdx}.message.tool_call_id`, msg.callId || msg.tool_call_id || `call_${msg.name}`);
-                span.setAttribute(`llm.input_messages.${msgIdx}.message.name`, msg.name);
-            } else if (typeof msg.content === "string") {
-                content = msg.content;
-                hasContent = !!content.trim();
-            } else if (Array.isArray(msg.content)) {
+                textContent = typeof msg.output === "string" ? msg.output : JSON.stringify(msg.output);
+                span.setAttribute(`${baseKey}.tool_call_id`, msg.callId || msg.tool_call_id || `call_${msg.name}`);
+                span.setAttribute(`${baseKey}.name`, msg.name);
+                hasValidContent = true;
+            }
+            // 2. Handle Simple String Content
+            else if (typeof msg.content === "string" && msg.content.trim()) {
+                textContent = msg.content;
+                hasValidContent = true;
+            }
+            // 3. Handle Array/Multi-part Content
+            // 3. Handle Array/Multi-part Content
+            else if (Array.isArray(msg.content)) {
+                const parts = [];
                 msg.content.forEach((part, partIdx) => {
-                    const partPrefix = `llm.input_messages.${msgIdx}.message.contents.${partIdx}.message_content`;
+                    const partPrefix = `${baseKey}.contents.${partIdx}.message_content`;
+
                     if (part.type === "text" || part.type === "input_text") {
-                        if (part.text && part.text.trim()) {
+                        const text = part.text || part.input_text;
+                        if (text?.trim()) {
                             span.setAttribute(`${partPrefix}.type`, "text");
-                            span.setAttribute(`${partPrefix}.text`, part.text);
-                            hasContent = true;
+                            span.setAttribute(`${partPrefix}.text`, text);
+                            hasValidContent = true;
                         }
-                    } else if (part.type === "image_url" || part.type === "input_image") {
+                    }
+                    else if (part.type === "image_url" || part.type === "input_image") {
                         const url = part.image_url?.url || part.image_url || part.data;
                         if (url) {
                             span.setAttribute(`${partPrefix}.type`, "image");
                             span.setAttribute(`${partPrefix}.image.image.url`, url);
-                            hasContent = true;
+                            hasValidContent = true;
                         }
                     }
+
                 });
-                content = msg.content.filter(p => p.text || p.input_text).map(p => p.text || p.input_text).join("\n");
+                // Now textContent contains both the text and the ![image](url) tags
+                textContent = parts.join("\n");
             }
 
-            // Handle previous tool calls in history
-            if (msg.tool_calls && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+            // 4. Handle Tool Calls (The Assistant calling a tool)
+            if (hasToolCalls) {
                 msg.tool_calls.forEach((tc, tcIdx) => {
-                    const tcPrefix = `llm.input_messages.${msgIdx}.message.tool_calls.${tcIdx}.tool_call`;
-                    span.setAttribute(`${tcPrefix}.id`, tc.id || tc.tool_call_id || `call_${tc.function?.name || tc.name}_${msgIdx}_${tcIdx}`);
+                    const tcPrefix = `${baseKey}.tool_calls.${tcIdx}.tool_call`;
+                    const args = tc.function?.arguments || tc.args || {};
+                    span.setAttribute(`${tcPrefix}.id`, tc.id || tc.tool_call_id || `call_${msgIdx}_${tcIdx}`);
                     span.setAttribute(`${tcPrefix}.function.name`, tc.function?.name || tc.name);
-                    span.setAttribute(`${tcPrefix}.function.arguments`, typeof (tc.function?.arguments || tc.args) === "string" ? (tc.function?.arguments || tc.args) : JSON.stringify(tc.function?.arguments || tc.args || {}));
+                    span.setAttribute(`${tcPrefix}.function.arguments`, typeof args === "string" ? args : JSON.stringify(args));
                 });
-                hasToolCalls = true;
             }
 
-            if (hasContent || hasToolCalls) {
-                span.setAttribute(`llm.input_messages.${msgIdx}.message.role`, role);
-                if (hasContent) {
-                    span.setAttribute(`llm.input_messages.${msgIdx}.message.content`, content);
+            // Finalize the message in the span
+            if (hasValidContent || hasToolCalls) {
+                span.setAttribute(`${baseKey}.role`, role);
+                if (textContent) {
+                    span.setAttribute(`${baseKey}.content`, textContent);
                 }
                 msgIdx++;
             }
@@ -420,18 +451,26 @@ async function callgemini(req, res) {
             if (!candidateObj) {
                 return res.status(500).json({ error: "No candidates returned from Gemini", raw: data });
             }
-
             const content = candidateObj.content;
 
+            const tools = (content.parts || [])
+                .filter(p => p.functionCall)
+                .map(p => ({ "name": p.functionCall.name, "args": p.functionCall.args }));
+
+            const speechTools = tools.filter(x => x.name === "synthesizeSpeech");
+
+            const audios = await Promise.all(
+                speechTools.map(async (x) => {
+                    return await texttovoice(x.args["speech"] , x.args["lang"]);
+                })
+            );
+
             const json = {
+                "audios": audios, 
                 "content": content,
-                "tools": (content.parts || [])
-                    .filter(p => p.functionCall)
-                    .map(p => ({ "name": p.functionCall.name, "args": p.functionCall.args }))
-            }
-         if (userq != "" && userq != null) {
-    json.userquery = userq;
-}
+                "tools": tools
+            };
+            if (userq) json.userquery = userq;
             res.status(200).json(json);
         }
     } catch (error) {

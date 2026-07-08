@@ -1,9 +1,15 @@
+try { require('dotenv').config(); } catch (e) {}
 const { register } = require("@arizeai/phoenix-otel");
 const { HttpInstrumentation } = require("@opentelemetry/instrumentation-http");
 
 register({
-  url:"http://localhost:6006/",
+  url: "http://localhost:6006/",
   projectName: "Proxy",
+  headers: {
+    Authorization: `Bearer ${process.env.PHOENIX_API_KEY}`
+  },
+    apiKey: process.env.PHOENIX_API_KEY,
+
   instrumentations: [
     new HttpInstrumentation({
 

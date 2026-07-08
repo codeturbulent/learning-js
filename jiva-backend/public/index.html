@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jiva Pro - Subscription Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .chip { transition: all 0.2s ease; }
+        .chip:hover { background-color: #4338ca; }
+        .input-container:focus-within { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-800 min-h-screen flex items-center justify-center p-6">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-white/20">
+        <div class="bg-gradient-to-r from-indigo-600 to-violet-600 p-8">
+            <h1 class="text-white text-3xl font-extrabold tracking-tight">Jiva Pro</h1>
+            <p class="text-indigo-100 text-sm mt-2 opacity-90">Enterprise Subscription Management Dashboard</p>
+        </div>
+        
+        <form id="assignForm" class="p-8 space-y-8">
+            <!-- Email Chip Input -->
+            <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="block text-sm font-bold text-gray-800 uppercase tracking-wider">Target Users</label>
+                    <span id="emailCount" class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full">0/30 Emails</span>
+                </div>
+                
+                <div id="emailContainer" class="input-container min-h-[100px] w-full p-3 border-2 border-gray-100 rounded-xl flex flex-wrap gap-2 items-start bg-gray-50 transition-all cursor-text">
+                    <input type="text" id="emailInput" placeholder="Enter emails..." 
+                        class="flex-1 min-w-[120px] bg-transparent outline-none py-1 text-gray-700 placeholder:text-gray-400">
+                </div>
+                <p class="text-[10px] text-gray-400 font-medium italic">Press Enter, Comma, or Space to add an email. Max 30.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Plan Selector -->
+                <div class="space-y-2">
+                    <label for="plan_id" class="block text-sm font-bold text-gray-800 uppercase tracking-wider">Plan</label>
+                    <div class="relative">
+                        <select id="plan_id" name="plan_id" required
+                            class="w-full pl-4 pr-10 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 outline-none bg-white transition-all appearance-none font-medium text-gray-700">
+                            <option value="jiva_free">Jiva Free</option>
+                            <option value="jivasub_1">Jiva Essential</option>
+                            <option value="jivasub_2">Jiva Plus</option>
+                            <option value="jivasub_3" selected>Jiva Elite</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expiration Date -->
+                <div class="space-y-2">
+                    <label for="expiresAt" class="block text-sm font-bold text-gray-800 uppercase tracking-wider">Expires On</label>
+                    <input type="datetime-local" id="expiresAt" name="expiresAt" required
+                        class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 outline-none transition-all font-medium text-gray-700">
+                </div>
+            </div>
+
+            <div id="dateWarning" class="p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600 font-semibold hidden flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                Date must be at least 48 hours in the future.
+            </div>
+
+            <button type="submit" id="submitBtn"
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-xl shadow-indigo-200 transform active:scale-[0.98] transition-all flex items-center justify-center text-lg">
+                <span id="btnText">Execute Plan Assignment</span>
+                <svg id="loader" class="animate-spin ml-3 h-6 w-6 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+        </form>
+
+        <div id="status" class="px-8 pb-8 hidden">
+            <div id="statusContent" class="p-5 rounded-2xl text-sm font-medium"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

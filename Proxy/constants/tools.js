@@ -35,31 +35,50 @@ const TOOLS = {
     RESPONSE: {
         "type": "function",
         "name": "synthesizeSpeech",
-        "description":
-            "Uses the app's Text-to-Speech (TTS) feature to speak custom words to the user or read specific pages from a PDF. this tool never return anything never expect any output from this tool",
+        "description": "Uses the app's Text-to-Speech (TTS) feature to speak custom words directly to the user. This tool does not return any output data.",
         "parameters": {
             "type": "object",
             "properties": {
                 "speech": {
                     "type": "string",
-                    "description":
-                        "The exact text string that will be read aloud to the user.",
+                    "description": "The exact text string that will be read aloud to the user."
+                },
+                "lang": {
+                    "type": "string",
+                    "description": "The BCP-47 code of the language to be spoken, select the code Asked by user language.",
+                    "enum": ['bn-IN', 'en-IN', 'gu-IN', 'hi-IN', 'kn-IN', 'ml-IN', 'mr-IN', 'od-IN', 'pa-IN', 'ta-IN', 'te-IN']
+
+                }
+            },
+            "required": ["speech", "lang"],
+            "additionalProperties": false
+        }
+    },
+    READPDFPAGES: {
+        "type": "function",
+        "name": "readPdfPages",
+        "description": "Reads specific page numbers or the remaining contents of a PDF document aloud to the user using TTS. This tool does not return any output data.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "readpages": {
+                    "type": "array",
+                    "description": "An array of page numbers from the PDF whose text content should be read aloud.",
+                    "items": { "type": "integer" }
                 },
                 "allpages": {
                     "type": "boolean",
-                    "description":
-                        "If true, the app will continue reading subsequent pages automatically until the end of the document or until interrupted.",
+                    "description": "If true, the app will continue reading subsequent pages automatically until the end of the document or until interrupted."
                 },
-                "readpages": {
-                    "type": "array",
-                    "description":
-                        "An array of page numbers from the PDF whose text content should be read aloud.",
-                    "items": { "type": "integer" },
-                },
+                "lang": {
+                    "type": "string",
+                    "description": "The BCP-47 code of the language to be spoken, select the code Asked by user language.",
+                    "enum": ['bn-IN', 'en-IN', 'gu-IN', 'hi-IN', 'kn-IN', 'ml-IN', 'mr-IN', 'od-IN', 'pa-IN', 'ta-IN', 'te-IN']
+                }
             },
-            "required": ["speech"],
-            "additionalProperties": false,
-        },
+            "required": ["readpages", "allpages", "lang"],
+            "additionalProperties": false
+        }
     },
     GETNOTESANDHIGHLIGHTS: {
         "type": "function",
@@ -118,7 +137,7 @@ const TOOLS = {
                     "description":
                         "Text to search for inside the PDF pages. Required.",
                 },
-      
+
                 "range": {
                     "type": "array",
                     "description":

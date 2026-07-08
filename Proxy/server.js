@@ -7,10 +7,13 @@ const { Readable } = require("stream");
 const { callgemini } = require("./models/gemini");
 const { callopenai } = require("./models/openai");
 const { findwithjiva } = require("./function/fwj")
-const { MODELS, APIKEYS } = require("./constants/models")
+const {texttovoice} = require("./function/tts.js")
+const { MODELS, APIKEYS } = require("./constants/constants.js")
 
 
 const otel = require("@opentelemetry/api");
+const { translate } = require('./function/translate.js');
+const { text } = require('stream/consumers');
 
 const app = express();
 app.use(cors());
@@ -21,7 +24,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Input validation middleware
 const validateRequest = (req, res, next) => {
-    if (req.method === 'POST' && req.path !== '/findwithjiva') {
+    if (req.method === 'POST' && req.path !== '/findwithjiva' && req.path !== '/texttotranslatevoice') {
         const { input, model } = req.body;
         if (!input && model !== 'claude') { // Claude is currently a stub
             return res.status(400).json({
@@ -39,9 +42,109 @@ app.get('/', async (req, res) => {
 });
 
 app.post('/findwithjiva' , async (req , res) => {
-    console.log("fwj requested")
     return await findwithjiva( req, res);
 } )
+
+app.post('/texttotranslatevoice', async (req, res) => {
+    const span = otel.trace.getActiveSpan();
+    if (span) {
+        span.updateName("texttotranslatevoice");
+        span.setAttributes({
+            "openinference.span.kind": "CHAIN",
+            "session.id": req.body.sessionId || "unknown",
+            "user.id": req.body.userId || "anonymous",
+            "input.value": req.body.text || "",
+            "input.mime_type": "text/plain"
+        });
+    }
+
+    try {
+        const textToProcess = req.body.text;
+        const lang = req.body.lang;
+
+        if (!textToProcess) {
+            if (span) {
+                span.setStatus({
+                    code: otel.SpanStatusCode.ERROR,
+                    description: "Missing 'text' field in request body."
+                });
+            }
+            return res.status(400).json({ error: "Missing 'text' field in request body." });
+        }
+
+        let translatedtext = textToProcess;
+
+        // Check if the target language is English (en-IN); if so, skip translation
+        if (lang === 'en-IN') {
+            if (span) {
+                span.setAttributes({
+                    "translate.skipped": true,
+                    "translate.reason": "Target language is en-IN (English), skipping translation step."
+                });
+            }
+        } else {
+            // Trace and execute translate call
+            if (span) {
+                span.setAttributes({
+                    "translate.input": textToProcess,
+                    "translate.target_language": lang,
+                    "translate.model_name": "mayura:v1",
+                    "translate.provider": "sarvam",
+                    "translate.skipped": false
+                });
+            }
+
+            translatedtext = await translate(textToProcess, lang);
+
+            if (span) {
+                span.setAttributes({
+                    "translate.output": translatedtext
+                });
+            }
+        }
+
+        // Trace tts call
+        if (span) {
+            span.setAttributes({
+                "tts.input": translatedtext,
+                "tts.language": lang,
+                "tts.model_name": "bulbul:v3",
+                "tts.provider": "sarvam"
+            });
+        }
+
+        const audioData = await texttovoice(translatedtext, lang);
+
+        const json = {
+            "audios": [audioData]
+        };
+
+        if (span) {
+            span.setAttributes({
+                "output.value": JSON.stringify({
+                    success: !!audioData,
+                    audio_length: audioData ? audioData.length : 0
+                }),
+                "output.mime_type": "application/json",
+                "tts.output": `Audio generated successfully. Length: ${audioData ? audioData.length : 0} characters.`
+            });
+            span.setStatus({ code: otel.SpanStatusCode.OK });
+        }
+
+        res.status(200).json(json);
+        
+    } catch (error) {
+        console.error("Error in /texttovoice route:", error);
+        if (span) {
+            span.recordException(error);
+            span.setStatus({
+                code: otel.SpanStatusCode.ERROR,
+                description: error.message
+            });
+        }
+        res.status(500).json({ error: "Failed to generate text-to-speech audio." });
+    }
+});
 
 app.post('/response', async (req, res) => {
     const model = req.body.model ?? "gemini"

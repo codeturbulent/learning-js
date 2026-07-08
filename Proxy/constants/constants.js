@@ -7,7 +7,8 @@ const MODELS = {
 const APIKEYS = {
     OPENAI: process.env.OPENAI_API_KEY,
     GEMINI: process.env.GEMINI_API_KEY,
-    SERPER: process.env.SERPER_API_KEY
+    SERPER: process.env.SERPER_API_KEY,
+    SARVAM: process.env.SARVAM_API_KEY
 };
 
 // Export both as an object
